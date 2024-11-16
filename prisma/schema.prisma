@@ -1,0 +1,241 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id            Int            @id @default(autoincrement())
+  nomeCompleto  String
+  cpf           String         @unique
+  email         String         @unique
+  senha         String
+  whatsapp      String
+  administrador Boolean
+  paciente      Paciente? 
+  medico        Medico?
+  consultas   Consulta[]
+}
+
+model Paciente {
+  id                 Int                  @id @default(autoincrement())
+  usuarioId          Int                  @unique
+  usuario            Usuario              @relation(fields: [usuarioId], references: [id])
+  dataNascimento     DateTime
+  sexo               Boolean 
+  endereco           String
+  objetivo           Objetivo 
+  preConsultas       PreConsulta[] 
+  exames             Exame[] 
+  prescricoes        Prescricao[] 
+  habitosAlimentares HabitosAlimentares[] 
+  sono               Sono[] 
+  atividadeFisica    AtividadeFisica[] 
+  saudeFisicaMental  SaudeFisicaMental[] 
+  exameFisico        ExameFisico[] 
+}
+
+enum Objetivo {
+  DOENCAS_CRONICAS
+  EMAGRECIMENTO
+  HIPERTROFIA
+}
+
+model Sono {
+  id             Int      @id @default(autoincrement()) 
+  qualidadeSono  String 
+  horarioSono    String 
+  inducaoSono    String 
+  manutencaoSono String 
+  despertarSono  String 
+  dormeBem       Boolean 
+  pacienteId     Int 
+  paciente       Paciente @relation(fields: [pacienteId], references: [id]) 
+}
+
+model SaudeFisicaMental {
+  id         Int      @id @default(autoincrement()) 
+  libido     String 
+  disposicao String 
+  ansioso    Boolean 
+  energia    String 
+  pacienteId Int 
+  paciente   Paciente @relation(fields: [pacienteId], references: [id]) 
+}
+
+enum ObjetivoLembrete {
+  CONSULTA
+  EXAME
+  PRESCRICAO
+}
+
+enum TipoConsulta {
+  ANAMNESE
+  PRE_CONSULTA
+}
+
+model PreConsulta {
+  id                    Int      @id @default(autoincrement()) 
+  historicoDoencas      String 
+  medicacoesUsoContinuo String 
+  alergia               String 
+  queixaDuracao         String 
+  usoPrevioEAA          Boolean 
+  limitadores           String 
+  historicoConvulsao    Boolean 
+  historicoGlaucoma     Boolean 
+  historicoNefrolitiase Boolean 
+  pesoAlmejado          Float 
+  pacienteId            Int 
+  paciente              Paciente @relation(fields: [pacienteId], references: [id]) 
+}
+
+model Exame {
+  id          Int        @id @default(autoincrement())
+  resultado   String
+  orientacao  String
+  tipoExame   TipoExame? @relation(fields: [tipoExameId], references: [id])
+  tipoExameId Int
+  paciente    Paciente?  @relation(fields: [pacienteId], references: [id])
+  pacienteId  Int?
+  medico      Medico?    @relation(fields: [medicoId], references: [id])
+  medicoId    Int
+  lembrete    Lembrete?  @relation(fields: [lembreteId], references: [id])
+  lembreteId  Int?       @unique
+}
+
+model TipoExame {
+  id     Int     @id @default(autoincrement())
+  nome   String
+  exames Exame[] 
+}
+
+
+model Prescricao {
+  id            Int         @id @default(autoincrement()) 
+  dosagem       String 
+  orientacao    String 
+  medicamentoId Int
+  medicamento   Medicamento @relation(fields: [medicamentoId], references: [id]) 
+  paciente      Paciente    @relation(fields: [pacienteId], references: [id]) 
+  pacienteId    Int
+  medico        Medico      @relation(fields: [medicoId], references: [id]) 
+  medicoId      Int
+  lembretes     Lembrete[]
+}
+
+model Medico {
+  id          Int          @id @default(autoincrement()) 
+  crm         String 
+  usuarioId   Int          @unique // ID do Usuário (relacionamento com Usuario)
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id]) 
+  consultas   Consulta[] 
+  exames      Exame[] 
+  prescricoes Prescricao[] 
+}
+
+model Medicamento {
+  id                Int               @id @default(autoincrement()) 
+  nome              String 
+  resumo            String 
+  efeitosColaterais EfeitoColateral[] 
+  prescricao        Prescricao[]
+}
+
+model Lembrete {
+  id           Int              @id @default(autoincrement()) 
+  objetivo     ObjetivoLembrete 
+  tipo         String 
+  mensagem     String 
+  consultaId   Int? 
+  exameId      Int? 
+  prescricaoId Int? 
+  consulta     Consulta?        @relation(fields: [consultaId], references: [id]) 
+  exame        Exame?
+  prescricao   Prescricao?      @relation(fields: [prescricaoId], references: [id]) 
+}
+
+model HabitosAlimentares {
+  id                 Int      @id @default(autoincrement()) 
+  compulsaoAlimentar Boolean 
+  gostaDocesAlcool   Boolean 
+  fomeNoturna        Boolean 
+  fomeEmocional      Boolean 
+  habitoBeliscador   Boolean 
+  pacienteId         Int 
+  paciente           Paciente @relation(fields: [pacienteId], references: [id]) 
+}
+
+model ExameFisico {
+  id            Int        @id @default(autoincrement()) 
+  inspecaoGeral String 
+  ar            String 
+  acv           String 
+  pacienteId    Int? 
+  paciente      Paciente?  @relation(fields: [pacienteId], references: [id]) 
+  consultas     Consulta[] 
+}
+
+model EfeitoColateral {
+  id            Int         @id @default(autoincrement()) 
+  titulo        String 
+  descricao     String 
+  categoria     String 
+  porcentagem   Float 
+  svgUrl        String 
+  bulaUrl       String 
+  medicamento   Medicamento @relation(fields: [medicamentoId], references: [id]) 
+  medicamentoId Int
+}
+
+model Consulta {
+  id                  Int                 @id @default(autoincrement()) 
+  data                DateTime 
+  status              String 
+  tipo                TipoConsulta 
+  registroConsulta    String 
+  pesoAtual           Float 
+  pressao             Float 
+  imc                 Float 
+  altura              Float 
+  hipoteseDiagnostica String 
+  conduta             String 
+  exameFisicoId       Int 
+  exameFisico         ExameFisico         @relation(fields: [exameFisicoId], references: [id]) 
+  avaliacoesConsulta  AvaliacaoConsulta[] 
+  lembretes           Lembrete[]
+  usuario       Usuario?      @relation(fields: [usuarioId], references: [id])
+  medico              Medico?             @relation(fields: [medicoId], references: [id])
+  medicoId            Int?
+ usuarioId     Int?
+}
+
+model AvaliacaoConsulta {
+  id            Int      @id @default(autoincrement()) 
+  nota          Int 
+  comentario    String 
+  dataAvaliacao DateTime @default(now()) 
+  consultaId    Int 
+  consulta      Consulta @relation(fields: [consultaId], references: [id]) 
+}
+
+model AtividadeFisica {
+  id                     Int      @id @default(autoincrement()) 
+  praticaAtividadeFisica Boolean 
+  tipoTreinamento        String 
+  frequenciaTreinos      String 
+  tempoExperiencia       String 
+  progressoAtividade     String[] 
+  pacienteId             Int 
+  paciente               Paciente @relation(fields: [pacienteId], references: [id]) 
+}
+

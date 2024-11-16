@@ -1,0 +1,24 @@
+{
+  "name": "app-medico",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "fastify": "^5.1.0",
+    "fastify-plugin": "^5.0.1",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@fastify/formbody": "^8.0.1",
+    "@prisma/client": "^5.22.0"
+  }
+}
