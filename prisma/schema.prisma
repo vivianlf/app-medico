@@ -23,7 +23,6 @@ model Usuario {
   administrador Boolean
   paciente      Paciente? 
   medico        Medico?
-  consultas   Consulta[]
 }
 
 model Paciente {
@@ -42,6 +41,8 @@ model Paciente {
   atividadeFisica    AtividadeFisica[] 
   saudeFisicaMental  SaudeFisicaMental[] 
   exameFisico        ExameFisico[] 
+  consultas   Consulta[] 
+
 }
 
 enum Objetivo {
@@ -213,10 +214,10 @@ model Consulta {
   exameFisico         ExameFisico         @relation(fields: [exameFisicoId], references: [id]) 
   avaliacoesConsulta  AvaliacaoConsulta[] 
   lembretes           Lembrete[]
-  usuario       Usuario?      @relation(fields: [usuarioId], references: [id])
+  paciente       Paciente?      @relation(fields: [pacienteId], references: [id])
   medico              Medico?             @relation(fields: [medicoId], references: [id])
   medicoId            Int?
- usuarioId     Int?
+ pacienteId     Int?
 }
 
 model AvaliacaoConsulta {
