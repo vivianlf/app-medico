@@ -9,9 +9,9 @@ export class Usuario {
   
   export class Paciente extends Usuario {
       dataNascimento?: Date
-      sexo?: string
+      sexo?: boolean
       endereco?: string
-      objetivo?: string
+      objetivo?: Enumerator
   }
   
   export class Medico extends Usuario {
