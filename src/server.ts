@@ -343,18 +343,18 @@ server.post('/habitosalimentares', async (request, reply) => {
   }
 });
 
-server.put('/habitosalimentares/:id', async (request, reply) => {
-  const { id } = request.params;
+server.put('/habitosalimentares/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params;
   const { compulsaoAlimentar, gostaDocesAlcool, fomeNoturna, fomeEmocional, habitoBeliscador } = request.body;
 
-  if (!id) {
+  if (!pacienteId) {
     reply.status(400).send({ error: 'ID é obrigatório para atualizar' });
     return;
   }
 
   try {
-    const habitoAtualizado = await prisma.habitosAlimentares.update({
-      where: { id: Number(id) },
+    const habitoAtualizado = await prisma.habitosAlimentares.updateMany({
+      where: { pacienteId: Number(pacienteId) },
       data: {
         compulsaoAlimentar,
         gostaDocesAlcool,
@@ -370,17 +370,17 @@ server.put('/habitosalimentares/:id', async (request, reply) => {
   }
 });
 
-server.delete('/habitosalimentares/:id', async (request, reply) => {
-  const { id } = request.params;
+server.delete('/habitosalimentares/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params;
 
-  if (!id) {
+  if (!pacienteId) {
     reply.status(400).send({ error: 'ID é obrigatório' });
     return;
   }
 
   try {
-    const habitoDeletado = await prisma.habitosAlimentares.delete({
-      where: { id: Number(id) },
+    const habitoDeletado = await prisma.habitosAlimentares.deleteMany({
+      where: { pacienteId: Number(pacienteId) },
     });
 
     reply.status(200).send(habitoDeletado);
@@ -442,18 +442,19 @@ server.post('/sono', async (request, reply) => {
   }
 });
 
-server.put('/sono/:id', async (request, reply) => {
-  const { id } = request.params;
+server.put('/sono/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params;
   const { qualidadeSono, horarioSono, inducaoSono, manutencaoSono, despertarSono, dormeBem } = request.body;
 
-  if (!id) {
-    reply.status(400).send({ error: 'ID do sono é obrigatório para atualizar' });
+  if (!pacienteId) {
+    reply.status(400).send({ error: 'ID é obrigatório para atualizar' });
     return;
   }
 
   try {
-    const sonoAtualizado = await prisma.sono.update({
-      where: { id: Number(id) },
+    // Atualizar o registro de sono do paciente
+    const sonoAtualizado = await prisma.sono.updateMany({
+      where: { pacienteId: Number(pacienteId) },
       data: {
         qualidadeSono,
         horarioSono,
@@ -464,28 +465,38 @@ server.put('/sono/:id', async (request, reply) => {
       },
     });
 
+    if (sonoAtualizado.count === 0) {
+      return reply.status(404).send({ error: 'Registro de sono não encontrado para o paciente' });
+    }
+
     reply.status(200).send(sonoAtualizado);
   } catch (error) {
-    reply.status(404).send({ error: 'Registro de sono não encontrado ou erro ao atualizar', details: error.message });
+    reply.status(500).send({ error: 'Erro ao atualizar registro de sono', details: error.message });
   }
 });
 
-server.delete('/sono/:id', async (request, reply) => {
-  const { id } = request.params;
 
-  if (!id) {
-    reply.status(400).send({ error: 'ID do sono é obrigatório' });
+server.delete('/sono/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params;
+
+  if (!pacienteId) {
+    reply.status(400).send({ error: 'ID é obrigatório' });
     return;
   }
 
   try {
-    const sonoDeletado = await prisma.sono.delete({
-      where: { id: Number(id) },
+    // Deletar o registro de sono do paciente
+    const sonoDeletado = await prisma.sono.deleteMany({
+      where: { pacienteId: Number(pacienteId) },
     });
 
-    reply.status(200).send(sonoDeletado);
+    if (sonoDeletado.count === 0) {
+      return reply.status(404).send({ error: 'Registro de sono não encontrado ou já excluído' });
+    }
+
+    reply.status(200).send({ message: 'Registro de sono deletado com sucesso' });
   } catch (error) {
-    reply.status(404).send({ error: 'Registro de sono não encontrado ou já foi excluído', details: error.message });
+    reply.status(500).send({ error: 'Erro ao deletar registro de sono', details: error.message });
   }
 });
 
