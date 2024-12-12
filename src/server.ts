@@ -1,8 +1,14 @@
 import fastify from 'fastify';
+import cors from '@fastify/cors';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 const server = fastify();
+
+// Configurando o CORS
+server.register(cors, {
+  origin: '*', // Permite todas as origens (para desenvolvimento)
+});
 
 // Rota inicial
 server.get('/', async (request, reply) => {
@@ -292,33 +298,41 @@ server.delete('/paciente/:id', async (request, reply) => {
 
 
 // CRUD para Hábitos Alimentares
-server.get('/habitosalimentares/all', async (request, reply) => {
+/* server.get('/habitosalimentares/all', async (request, reply) => {
   const habitos = await prisma.habitosAlimentares.findMany();
   return habitos;
 });
+*/
 
-server.get('/habitosalimentares/:id', async (request, reply) => {
-  const { id } = request.params;
+server.get('/habitosalimentares/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params;
 
-  if (!id) {
-    reply.status(400).send({ error: 'ID é obrigatório' });
+  if (!pacienteId) {
+    reply.status(400).send({ error: 'Paciente ID é obrigatório' });
     return;
   }
 
-  const habito = await prisma.habitosAlimentares.findUnique({
-    where: { id: Number(id) },
-  });
+  try {
+    const habitos = await prisma.habitosAlimentares.findMany({
+      where: { pacienteId: Number(pacienteId) },
+    });
 
-  if (!habito) {
-    reply.status(404).send({ error: 'Hábito alimentar não encontrado' });
-    return;
+    if (habitos.length === 0) {
+      reply.status(404).send({ error: 'Nenhum hábito alimentar encontrado para este paciente' });
+      return;
+    }
+
+    reply.status(200).send(habitos);
+  } catch (error) {
+    console.error('Erro ao buscar hábitos alimentares:', error);
+    reply.status(500).send({ error: 'Erro ao buscar hábitos alimentares', details: error.message });
   }
-
-  return habito;
 });
 
-server.post('/habitosalimentares', async (request, reply) => {
-  const { compulsaoAlimentar, gostaDocesAlcool, fomeNoturna, fomeEmocional, habitoBeliscador, pacienteId } = request.body;
+
+server.post('/habitosalimentares/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params; // Obtendo o pacienteId da URL
+  const { compulsaoAlimentar, gostaDocesAlcool, fomeNoturna, fomeEmocional, habitoBeliscador } = request.body; // Dados do corpo da requisição
 
   if (!pacienteId) {
     reply.status(400).send({ error: 'Paciente ID é obrigatório' });
@@ -333,15 +347,17 @@ server.post('/habitosalimentares', async (request, reply) => {
         fomeNoturna,
         fomeEmocional,
         habitoBeliscador,
-        pacienteId,
+        pacienteId: Number(pacienteId), // Certifique-se de converter o pacienteId para um número, caso necessário
       },
     });
 
-    reply.status(201).send(novoHabito);
+    reply.status(201).send(novoHabito); // Resposta de sucesso
   } catch (error) {
+    console.error('Erro ao criar hábitos alimentares:', error);
     reply.status(500).send({ error: 'Erro ao criar hábitos alimentares', details: error.message });
   }
 });
+
 
 server.put('/habitosalimentares/:pacienteId', async (request, reply) => {
   const { pacienteId } = request.params;
@@ -390,33 +406,35 @@ server.delete('/habitosalimentares/:pacienteId', async (request, reply) => {
 });
 
 // CRUD para Sono
-server.get('/sono/all', async (request, reply) => {
-  const sonos = await prisma.sono.findMany();
-  return sonos;
-});
 
-server.get('/sono/:id', async (request, reply) => {
-  const { id } = request.params;
+server.get('/sono/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params;
 
-  if (!id) {
-    reply.status(400).send({ error: 'ID do sono é obrigatório' });
+  if (!pacienteId) {
+    reply.status(400).send({ error: 'ID do paciente é obrigatório' });
     return;
   }
 
-  const sono = await prisma.sono.findUnique({
-    where: { id: Number(id) },
-  });
+  try {
+    const sonos = await prisma.sono.findMany({
+      where: { pacienteId: Number(pacienteId) },
+    });
 
-  if (!sono) {
-    reply.status(404).send({ error: 'Registro de sono não encontrado' });
-    return;
+    if (!sonos || sonos.length === 0) {
+      reply.status(404).send({ error: 'Nenhum registro de sono encontrado para este paciente' });
+      return;
+    }
+
+    return sonos;
+  } catch (error) {
+    reply.status(500).send({ error: 'Erro ao buscar registros de sono', details: error.message });
   }
-
-  return sono;
 });
 
-server.post('/sono', async (request, reply) => {
-  const { qualidadeSono, horarioSono, inducaoSono, manutencaoSono, despertarSono, dormeBem, pacienteId } = request.body;
+
+server.post('/sono/:pacienteId', async (request, reply) => {
+  const { pacienteId } = request.params; 
+  const { qualidadeSono, horarioSono, inducaoSono, manutencaoSono, despertarSono, dormeBem } = request.body;
 
   if (!pacienteId || !qualidadeSono || !horarioSono) {
     reply.status(400).send({ error: 'Campos obrigatórios: pacienteId, qualidadeSono, horarioSono' });
@@ -424,15 +442,24 @@ server.post('/sono', async (request, reply) => {
   }
 
   try {
+    const sonoExistente = await prisma.sono.findFirst({
+      where: { pacienteId: Number(pacienteId) },
+    });
+
+    if (sonoExistente) {
+      reply.status(400).send({ error: 'Já existe um registro de sono para este paciente' });
+      return;
+    }
+
     const novoSono = await prisma.sono.create({
       data: {
+        pacienteId: Number(pacienteId),
         qualidadeSono,
         horarioSono,
         inducaoSono,
         manutencaoSono,
         despertarSono,
         dormeBem,
-        pacienteId,
       },
     });
 
@@ -447,12 +474,11 @@ server.put('/sono/:pacienteId', async (request, reply) => {
   const { qualidadeSono, horarioSono, inducaoSono, manutencaoSono, despertarSono, dormeBem } = request.body;
 
   if (!pacienteId) {
-    reply.status(400).send({ error: 'ID é obrigatório para atualizar' });
+    reply.status(400).send({ error: 'ID do paciente é obrigatório para atualizar' });
     return;
   }
 
   try {
-    // Atualizar o registro de sono do paciente
     const sonoAtualizado = await prisma.sono.updateMany({
       where: { pacienteId: Number(pacienteId) },
       data: {
@@ -466,39 +492,40 @@ server.put('/sono/:pacienteId', async (request, reply) => {
     });
 
     if (sonoAtualizado.count === 0) {
-      return reply.status(404).send({ error: 'Registro de sono não encontrado para o paciente' });
+      reply.status(404).send({ error: 'Nenhum registro de sono encontrado para o paciente' });
+      return;
     }
 
-    reply.status(200).send(sonoAtualizado);
+    reply.status(200).send({ message: 'Registro(s) de sono atualizado(s) com sucesso', atualizado: sonoAtualizado });
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao atualizar registro de sono', details: error.message });
+    reply.status(500).send({ error: 'Erro ao atualizar registro(s) de sono', details: error.message });
   }
 });
-
 
 server.delete('/sono/:pacienteId', async (request, reply) => {
   const { pacienteId } = request.params;
 
   if (!pacienteId) {
-    reply.status(400).send({ error: 'ID é obrigatório' });
+    reply.status(400).send({ error: 'ID do paciente é obrigatório' });
     return;
   }
 
   try {
-    // Deletar o registro de sono do paciente
     const sonoDeletado = await prisma.sono.deleteMany({
       where: { pacienteId: Number(pacienteId) },
     });
 
     if (sonoDeletado.count === 0) {
-      return reply.status(404).send({ error: 'Registro de sono não encontrado ou já excluído' });
+      reply.status(404).send({ error: 'Nenhum registro de sono encontrado ou já excluído para este paciente' });
+      return;
     }
 
-    reply.status(200).send({ message: 'Registro de sono deletado com sucesso' });
+    reply.status(200).send({ message: 'Registro(s) de sono deletado(s) com sucesso', deletado: sonoDeletado });
   } catch (error) {
-    reply.status(500).send({ error: 'Erro ao deletar registro de sono', details: error.message });
+    reply.status(500).send({ error: 'Erro ao deletar registro(s) de sono', details: error.message });
   }
 });
+
 
 // CRUD para PreConsulta
 
